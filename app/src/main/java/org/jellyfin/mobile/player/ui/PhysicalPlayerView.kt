@@ -10,9 +10,13 @@ import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerView
 import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
+import org.jellyfin.mobile.utils.Constants
 
 /** Mobile Media3 controller, with remote wake/focus and ordinary Android focus navigation. */
-class PhysicalPlayerView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : PlayerView(context, attrs) {
+class PhysicalPlayerView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+) : PlayerView(context, attrs) {
     private var wakeKey: Int? = null
 
     override fun onFinishInflate() {
@@ -28,15 +32,22 @@ class PhysicalPlayerView @JvmOverloads constructor(context: Context, attrs: Attr
         decorate(this)
         findViewById<DefaultTimeBar>(R.id.exo_progress)?.apply {
             isFocusable = true
-            setKeyTimeIncrement(10_000)
+            setKeyTimeIncrement(Constants.DEFAULT_SEEK_TIME_MS)
         }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (!BuildConfig.PHYSICAL_NAVIGATION || !useController || event.hasModifiers()) return super.dispatchKeyEvent(event)
+        if (!BuildConfig.PHYSICAL_NAVIGATION || !useController || event.hasModifiers()) {
+            return super.dispatchKeyEvent(event)
+        }
         val navigation = event.keyCode in intArrayOf(
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_NUMPAD_ENTER,
         )
         if (!navigation) return super.dispatchKeyEvent(event) // MediaSession remains responsible for media keys.
         if (wakeKey == event.keyCode) {
@@ -52,9 +63,13 @@ class PhysicalPlayerView @JvmOverloads constructor(context: Context, attrs: Attr
             }
             showController() // Refresh the timeout for each physical interaction, including seek repeats.
             if (event.repeatCount > 0 && event.keyCode in intArrayOf(
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_NUMPAD_ENTER,
                 )
-            ) return true
+            ) {
+                return true
+            }
         }
         return super.dispatchKeyEvent(event)
     }

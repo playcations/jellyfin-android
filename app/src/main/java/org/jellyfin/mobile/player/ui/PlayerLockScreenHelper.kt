@@ -59,8 +59,11 @@ class PlayerLockScreenHelper(
     fun peekUnlockButton() {
         playerView.removeCallbacks(hideUnlockButtonAction)
         unlockScreenButton.isVisible = true
-        if (BuildConfig.PHYSICAL_NAVIGATION) unlockScreenButton.requestFocus()
-        else playerView.postDelayed(hideUnlockButtonAction, Constants.DEFAULT_CONTROLS_TIMEOUT_MS.toLong())
+        if (BuildConfig.PHYSICAL_NAVIGATION) {
+            unlockScreenButton.requestFocus()
+        } else {
+            playerView.postDelayed(hideUnlockButtonAction, Constants.DEFAULT_CONTROLS_TIMEOUT_MS.toLong())
+        }
     }
 
     fun onBackPressed(): Boolean {
