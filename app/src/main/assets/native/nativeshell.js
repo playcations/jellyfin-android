@@ -31,10 +31,11 @@ for (const plugin of plugins) {
     };
 }
 
-const { deviceId, deviceName, appName, appVersion } = JSON.parse(window.NativeInterface.getDeviceInformation());
+const { deviceId, deviceName, appName, appVersion, physicalNavigation } = JSON.parse(window.NativeInterface.getDeviceInformation());
 const codecCaps = JSON.parse(window.NativeInterface.getCodecCapabilities());
 
 window.NativeShell = {
+    capabilities: { physicalNavigation: physicalNavigation === true },
     enableFullscreen() {
         window.NativeInterface.enableFullscreen();
     },

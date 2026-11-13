@@ -65,6 +65,7 @@ class NativeInterface(private val context: Context) : KoinComponent {
             put("deviceName", name)
             put("appName", clientInfo.name)
             put("appVersion", clientInfo.version)
+            put("physicalNavigation", BuildConfig.PHYSICAL_NAVIGATION)
         }.toString()
     } catch (e: Exception) {
         null

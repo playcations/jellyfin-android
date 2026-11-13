@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        orientationListener.enable()
+        if (!BuildConfig.PHYSICAL_NAVIGATION) orientationListener.enable()
     }
 
     private fun handleServerState(state: ServerState) {

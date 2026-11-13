@@ -12,6 +12,8 @@ plugins {
     alias(libs.plugins.android.junit5)
 }
 
+val familyfinVersion = project.getVersionName("0.1.0-familyfin.1")
+
 detekt {
     buildUponDefaultConfig = true
     ignoreFailures = true
@@ -31,9 +33,10 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
+        applicationId = "com.playcations.familyfin.web"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionName = project.getVersionName()
+        versionName = familyfinVersion
         versionCode = getVersionCode(versionName!!)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -75,8 +78,17 @@ android {
         }
     }
 
-    flavorDimensions += "variant"
+    flavorDimensions += listOf("variant", "formFactor")
     productFlavors {
+        register("phone") {
+            dimension = "formFactor"
+            isDefault = true
+            buildConfigField("boolean", "PHYSICAL_NAVIGATION", "false")
+        }
+        register("tv") {
+            dimension = "formFactor"
+            buildConfigField("boolean", "PHYSICAL_NAVIGATION", "true")
+        }
         register("libre") {
             dimension = "variant"
             buildConfigField("boolean", "IS_PROPRIETARY", "false")
@@ -122,7 +134,7 @@ android {
     }
 }
 
-base.archivesName.set("jellyfin-android-v${project.getVersionName()}")
+base.archivesName.set("familyfin-web-v$familyfinVersion")
 
 dependencies {
     val proprietaryImplementation by configurations

@@ -42,12 +42,9 @@ jobs:
       - name: Prepare release archive
         run: |
           mkdir -p build/jellyfin-publish
-          mv app/build/outputs/apk/libre/debug/jellyfin-android-*-libre-debug.apk build/jellyfin-publish/
-          mv app/build/outputs/apk/libre/release/jellyfin-android-*-libre-release.apk build/jellyfin-publish/
-          mv app/build/outputs/bundle/libreRelease/jellyfin-android-*-libre-release.aab build/jellyfin-publish/
-          mv app/build/outputs/apk/proprietary/debug/jellyfin-android-*-proprietary-debug.apk build/jellyfin-publish/
-          mv app/build/outputs/apk/proprietary/release/jellyfin-android-*-proprietary-release.apk build/jellyfin-publish/
-          mv app/build/outputs/bundle/proprietaryRelease/jellyfin-android-*-proprietary-release.aab build/jellyfin-publish/ 
+          # Include both distribution and formFactor dimensions; names include all flavors.
+          find app/build/outputs/apk -name 'familyfin-web-*.apk' -exec cp {} build/jellyfin-publish/ \;
+          find app/build/outputs/bundle -name 'familyfin-web-*.aab' -exec cp {} build/jellyfin-publish/ \;
           mv app/build/version.txt build/jellyfin-publish/
 
       - name: Upload release archive to GitHub release
@@ -79,6 +76,6 @@ jobs:
             sudo mv /srv/incoming/android/v${{ env.JELLYFIN_VERSION }} /srv/repository/main/client/android/versions/v${{ env.JELLYFIN_VERSION }}
             cd /srv/repository/main/client/android;
             sudo rm -rf *.apk version.txt;
-            sudo ln -s versions/v${{ env.JELLYFIN_VERSION }}/jellyfin-android-v${{ env.JELLYFIN_VERSION }}-*.apk .;
+            sudo ln -s versions/v${{ env.JELLYFIN_VERSION }}/familyfin-web-v${{ env.JELLYFIN_VERSION }}-*.apk .;
             sudo ln -s versions/v${{ env.JELLYFIN_VERSION }}/version.txt .;
           EOF
