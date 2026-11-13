@@ -114,6 +114,40 @@ with sync_playwright() as p:
         assert page.locator('#checkbox').is_checked()
         page.keyboard.press('ArrowRight');active('modern2')
     check('Checkbox retains native toggle and permits directional exit', checkbox)
+    def checkable_enter():
+        page.evaluate('''document.querySelector('#modern').outerHTML='<input type="checkbox" id="check-enter"><input type="radio" name="fixture-radio" id="radio-one" checked><input type="radio" name="fixture-radio" id="radio-two">';''')
+        page.locator('#check-enter').focus(); page.keyboard.press('Enter')
+        assert page.locator('#check-enter').is_checked()
+        page.keyboard.press('Space'); assert not page.locator('#check-enter').is_checked()
+        page.locator('#radio-two').focus(); page.keyboard.press('Enter')
+        assert page.locator('#radio-two').is_checked()
+        assert not page.locator('#radio-one').is_checked()
+    check('Remote Enter toggles native checkboxes and radios while Space remains native', checkable_enter)
+    def transparent_checkable():
+        page.evaluate('''() => {
+            document.querySelector('#modern2').outerHTML='<span class="MuiCheckbox-root" style="position:relative;display:inline-block;width:140px;height:64px;margin:15px;background:#345"><input type="checkbox" id="mui-check" style="position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0"><span aria-hidden="true">Visible check artwork</span></span>';
+        }''')
+        page.locator('#modern').focus(); page.keyboard.press('ArrowRight'); active('mui-check')
+        assert page.locator('.MuiCheckbox-root').evaluate("e=>getComputedStyle(e).outlineWidth") == '3px'
+        page.evaluate("document.body.insertAdjacentHTML('beforeend','<span hidden>Mutation</span>')")
+        page.wait_for_timeout(100); active('mui-check')
+        page.keyboard.press('Enter'); assert page.locator('#mui-check').is_checked()
+        page.locator('.MuiCheckbox-root').evaluate("e=>e.style.opacity='0'")
+        page.keyboard.press('ArrowRight'); active('role')
+    check('Transparent MUI inputs remain reachable, visibly focused and stable after mutations', transparent_checkable)
+    def permanent_drawer():
+        page.evaluate('''() => {
+            document.querySelector('#home').style.marginLeft='250px';
+            const drawer=document.createElement('aside'); drawer.className='MuiDrawer-root MuiDrawer-docked';
+            drawer.style='position:fixed;left:0;top:0;width:230px;height:100%';
+            drawer.innerHTML='<div class="MuiPaper-root"><button id="sidebar">Sidebar</button></div>';
+            document.body.prepend(drawer);
+        }''')
+        page.locator('#sidebar').focus(); page.keyboard.press('ArrowRight'); active('modern')
+        page.evaluate("document.body.insertAdjacentHTML('beforeend','<span hidden>Mutation</span>')")
+        page.wait_for_timeout(100); active('modern')
+        page.keyboard.press('ArrowLeft'); active('sidebar')
+    check('Permanent widescreen drawers permit movement between sidebar and main content', permanent_drawer)
     def repeat():
         page.keyboard.down('ArrowRight'); active('modern2')
         page.keyboard.down('ArrowRight'); active('role'); page.keyboard.up('ArrowRight')

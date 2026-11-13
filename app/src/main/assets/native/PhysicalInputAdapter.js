@@ -2,6 +2,7 @@
 const candidates = 'a[href],button,input:not([type="hidden"]),textarea,select,[tabindex],.focusable,[role="button"],[role="menuitem"]';
 const directions = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
 const nativeEnter = 'a[href],button,input,textarea,select';
+const checkable = 'input[type="checkbox"],input[type="radio"]';
 
 export function isEditing(element) {
     if (!element) return false;
@@ -33,7 +34,7 @@ export class PhysicalInputAdapter {
             });
         };
         this.style = this.doc.createElement('style');
-        this.style.textContent = '.familyfin-physical-input :focus { outline: 3px solid #00a4dc !important; outline-offset: -3px !important; }';
+        this.style.textContent = '.familyfin-physical-input :focus, .familyfin-physical-input label:focus-within, .familyfin-physical-input .MuiCheckbox-root:focus-within, .familyfin-physical-input .MuiRadio-root:focus-within, .familyfin-physical-input .MuiSwitch-root:focus-within { outline: 3px solid #00a4dc !important; outline-offset: -3px !important; }';
         this.doc.head.append(this.style);
         // Let native controls and React/MUI key handlers consume their keys first.
         win.addEventListener('keydown', this.onKey);
@@ -61,14 +62,18 @@ export class PhysicalInputAdapter {
         if (!element?.isConnected || element.closest('[hidden],[inert],[aria-hidden="true"],.hide,.mainDrawer:not(.drawer-open)')) return false;
         if (element.matches(':disabled,[aria-disabled="true"]')) return false;
         for (let ancestor = element; ancestor && ancestor !== this.doc.body; ancestor = ancestor.parentElement) {
-            if (this.win.getComputedStyle(ancestor).opacity === '0') return false;
+            // MUI paints checkable controls beside an intentionally transparent native input.
+            // Only the input itself may be transparent; an invisible ancestor still hides it.
+            if (this.win.getComputedStyle(ancestor).opacity === '0'
+                && !(ancestor === element && element.matches(checkable))) return false;
         }
         const style = this.win.getComputedStyle(element);
         return style.visibility !== 'hidden' && style.display !== 'none' && element.getClientRects().length > 0;
     }
 
     scope() {
-        const overlays = [...this.doc.querySelectorAll('.dialog.opened,dialog[open],[aria-modal="true"],[role="menu"],.MuiModal-root,.MuiDrawer-root .MuiPaper-root,.mainDrawer.drawer-open')];
+        // Temporary MUI drawers have a MuiModal root. Permanent/persistent sidebars are not modal.
+        const overlays = [...this.doc.querySelectorAll('.dialog.opened,dialog[open],[aria-modal="true"],[role="menu"],.MuiModal-root,.mainDrawer.drawer-open')];
         const visible = overlays.filter(e => this.visible(e));
         return visible[visible.length - 1] || this.doc.body;
     }
@@ -134,7 +139,7 @@ export class PhysicalInputAdapter {
         if (isEditing(event.target) && command !== 'back') return;
         this.physical = true;
         // Enter retains browser form submission and button/link activation semantics.
-        if (enter && event.target.matches(nativeEnter) && !event.repeat) {
+        if (enter && event.target.matches(nativeEnter) && !event.target.matches(checkable) && !event.repeat) {
             this.doc.documentElement.classList.add('familyfin-physical-input');
             return;
         }

@@ -3,11 +3,17 @@ package org.jellyfin.mobile
 import android.content.Intent
 import android.view.KeyEvent
 import android.view.View
+import android.view.MenuItem
+import android.widget.ListView
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.Player
+import androidx.media3.common.C
 import androidx.media3.ui.PlayerView
 import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.matcher.RootMatchers.isPlatformPopup
+import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import org.jellyfin.mobile.data.dao.DownloadDao
@@ -20,6 +26,7 @@ import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.mobile.player.PlayerViewModel
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.testing.PlayerFixtureActivity
+import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.MediaProtocol
 import org.jellyfin.sdk.model.api.MediaSourceType
@@ -90,6 +97,25 @@ class PhysicalPlayerTest {
                     fail(message)
                 }
                 fun key(code: Int) { instrumentation.sendKeyDownUpSync(code); instrumentation.waitForIdleSync() }
+                fun selectPopupItem(title: String) {
+                    // Popup initial selection varies by Android version and input mode. Navigate by its visible label.
+                    repeat(12) {
+                        var selected = -1
+                        var wanted = -1
+                        onView(isAssignableFrom(ListView::class.java)).inRoot(isPlatformPopup()).check { view, error ->
+                            if (error != null) throw error
+                            val list = view as ListView
+                            selected = list.selectedItemPosition
+                            wanted = (0 until list.adapter.count).firstOrNull { index ->
+                                (list.adapter.getItem(index) as? MenuItem)?.title?.toString() == title
+                            } ?: -1
+                        }
+                        assertTrue("Popup contains $title", wanted >= 0)
+                        if (selected == wanted) { key(KeyEvent.KEYCODE_DPAD_CENTER); return }
+                        key(if (selected > wanted) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN)
+                    }
+                    fail("Could not reach popup item $title using the D-pad")
+                }
                 fun focus(id: Int) { onPlayer { activity, _, view, _ -> view.showController();assertTrue(activity.findViewById<View>(id).requestFocus()) } }
                 awaitState("Fixture must actually decode and play", 120_000) { it.playerOrNull?.playbackState == Player.STATE_READY && it.playerOrNull!!.currentPosition > 500 }
                 onPlayer { _, _, view, model ->
@@ -109,15 +135,25 @@ class PhysicalPlayerTest {
                 key(KeyEvent.KEYCODE_DPAD_RIGHT); key(KeyEvent.KEYCODE_DPAD_CENTER)
                 onPlayer { _, _, _, model -> assertTrue("Timebar seeks by remote", model.playerOrNull!!.currentPosition >= 9_000) }
                 focus(R.id.audio_streams_button); key(KeyEvent.KEYCODE_DPAD_CENTER)
-                key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_CENTER)
+                selectPopupItem("French fixture")
                 awaitState("Remote audio menu selects French") { it.mediaSourceOrNull?.selectedAudioStreamIndex == 2 }
+                awaitState("Decoder applies the French audio track") { model ->
+                    model.playerOrNull?.currentTracks?.groups?.any { group ->
+                        group.type == C.TRACK_TYPE_AUDIO && group.isSelected && group.mediaTrackGroup.getFormat(0).language in setOf("fr", "fra")
+                    } == true
+                }
                 onPlayer { activity, _, view, _ ->
                     assertEquals(R.id.audio_streams_button, activity.currentFocus?.id)
                     assertTrue(view.controllerShowTimeoutMs > 0)
                 }
                 focus(R.id.subtitles_button);key(KeyEvent.KEYCODE_DPAD_CENTER)
-                key(KeyEvent.KEYCODE_DPAD_DOWN);key(KeyEvent.KEYCODE_DPAD_DOWN);key(KeyEvent.KEYCODE_DPAD_CENTER)
+                selectPopupItem("English subtitles")
                 awaitState("Remote subtitle menu selects English") { it.mediaSourceOrNull?.selectedSubtitleStreamIndex == 3 }
+                awaitState("Renderer applies the English subtitle track") { model ->
+                    model.playerOrNull?.currentTracks?.groups?.any { group ->
+                        group.type == C.TRACK_TYPE_TEXT && group.isSelected && group.mediaTrackGroup.getFormat(0).language in setOf("en", "eng")
+                    } == true
+                }
                 onPlayer { activity, _, _, _ -> assertEquals(R.id.subtitles_button, activity.currentFocus?.id) }
                 focus(R.id.audio_streams_button);key(KeyEvent.KEYCODE_DPAD_CENTER); key(KeyEvent.KEYCODE_BACK)
                 onPlayer { activity, _, view, _ -> assertEquals(R.id.audio_streams_button, activity.currentFocus?.id); assertTrue(view.isControllerFullyVisible) }
@@ -129,7 +165,10 @@ class PhysicalPlayerTest {
                     view.showController()
                 }
                 Thread.sleep(1_200)
-                onPlayer { _, _, view, _ -> assertFalse("Controls auto-hide after interaction", view.isControllerFullyVisible) }
+                onPlayer { _, _, view, _ ->
+                    assertFalse("Controls auto-hide after interaction", view.isControllerFullyVisible)
+                    view.controllerShowTimeoutMs = Constants.DEFAULT_CONTROLS_TIMEOUT_MS
+                }
                 key(KeyEvent.KEYCODE_DPAD_UP)
                 onPlayer { _, _, view, model -> assertTrue(view.isControllerFullyVisible); model.mediaSession.controller.transportControls.pause() }
                 awaitState("Media-session pause retained") { it.playerOrNull?.playWhenReady == false }

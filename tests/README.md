@@ -13,7 +13,7 @@ With JDK 21 and Android SDK 37 available:
 
 ```sh
 JELLYFIN_VERSION=0.1.0-familyfin.1 ./gradlew \
-  assembleLibrePhoneDebug assembleLibreTvDebug assembleLibreTvDebugAndroidTest
+  assembleDebug assembleLibreTvDebugAndroidTest
 ```
 
 APKs are under `app/build/outputs/apk/librePhone/debug`,
@@ -27,6 +27,11 @@ and writes JSON and command evidence:
 ```sh
 python3 tests/verify_apks.py --artifacts build/verified-apks
 ```
+
+`assembleDebug` also builds proprietary phone/TV variants with the upstream
+Google Cast support. Verify all four with `--flavor librePhone --flavor libreTv
+--flavor proprietaryPhone --flavor proprietaryTv`. The default fork version is
+`0.1.0-familyfin.1`; `JELLYFIN_VERSION` overrides it for subsequent releases.
 
 ## Browser input regression suite
 
@@ -76,6 +81,12 @@ unintended toggle, physical focus traversal, timebar seek, audio/subtitle menus,
 popup focus return, controller timeout, TV PiP guard, media-session pause and
 lock-screen Back. A compiled test APK is not evidence that these assertions ran;
 only a successful instrumentation log is.
+
+The final suite passed on a disposable Android TV API28 x86 emulator, including
+actual decoder-selected French audio and renderer-selected English subtitles.
+Menu selection navigates by visible labels because initial popup selection
+differs between Android versions. The short timeout used to verify auto-hide is
+restored before testing remote wake. No physical-device results are claimed.
 
 The media fixture is synthetic. Its video is a navy 320x180 frame at 10 fps;
 audio is 440 Hz/880 Hz, and subtitles come from `media/*.srt`. Regenerate it with

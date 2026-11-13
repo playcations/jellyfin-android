@@ -12,6 +12,8 @@ plugins {
     alias(libs.plugins.android.junit5)
 }
 
+val familyfinVersion = project.getVersionName("0.1.0-familyfin.1")
+
 detekt {
     buildUponDefaultConfig = true
     ignoreFailures = true
@@ -34,7 +36,7 @@ android {
         applicationId = "com.playcations.familyfin.web"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionName = project.getVersionName()
+        versionName = familyfinVersion
         versionCode = getVersionCode(versionName!!)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -132,7 +134,7 @@ android {
     }
 }
 
-base.archivesName.set("familyfin-web-v${project.getVersionName()}")
+base.archivesName.set("familyfin-web-v$familyfinVersion")
 
 dependencies {
     val proprietaryImplementation by configurations
