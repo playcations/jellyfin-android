@@ -24,5 +24,12 @@ jobs:
           java-version-file: .tools-versions
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Install browser test dependencies
+        run: |
+          python3 -m venv build/browser-tests
+          build/browser-tests/bin/pip install -r tests/requirements.txt
+          build/browser-tests/bin/python -m playwright install --with-deps chromium
+      - name: Test APK-contained web navigation
+        run: build/browser-tests/bin/python tests/test_navigation.py
       - name: Run test task
         run: ./gradlew test

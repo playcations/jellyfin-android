@@ -1,0 +1,9 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="oval">
+            <solid android:color="#80305070" />
+            <stroke android:width="3dp" android:color="#00A4DC" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ripple_background_circular" />
+</selector>

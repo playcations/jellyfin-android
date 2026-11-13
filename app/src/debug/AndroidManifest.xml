@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Instrumentation-only host for the real PlayerFragment; no exported entry point. -->
+        <activity android:name="org.jellyfin.mobile.testing.PlayerFixtureActivity" android:exported="false" android:theme="@style/AppTheme" />
+    </application>
+</manifest>

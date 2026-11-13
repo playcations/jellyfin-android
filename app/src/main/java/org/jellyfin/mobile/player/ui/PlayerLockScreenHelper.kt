@@ -5,6 +5,7 @@ import android.view.OrientationEventListener
 import android.widget.ImageButton
 import androidx.core.view.isVisible
 import androidx.media3.ui.PlayerView
+import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.Constants
@@ -36,17 +37,17 @@ class PlayerLockScreenHelper(
     fun lockScreen() {
         playerView.useController = false
         orientationListener.disable()
-        playerFragment.requireActivity().lockOrientation()
+        if (!BuildConfig.PHYSICAL_NAVIGATION) playerFragment.requireActivity().lockOrientation()
         peekUnlockButton()
     }
 
     private fun unlockScreen() {
         hideUnlockButton()
         val activity = playerFragment.requireActivity()
-        if (activity.isAutoRotateOn()) {
+        if (!BuildConfig.PHYSICAL_NAVIGATION && activity.isAutoRotateOn()) {
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
-        orientationListener.enable()
+        if (!BuildConfig.PHYSICAL_NAVIGATION) orientationListener.enable()
         if (!AndroidVersion.isAtLeastN || !activity.isInPictureInPictureMode) {
             playerView.useController = true
             playerView.apply {
@@ -58,7 +59,14 @@ class PlayerLockScreenHelper(
     fun peekUnlockButton() {
         playerView.removeCallbacks(hideUnlockButtonAction)
         unlockScreenButton.isVisible = true
-        playerView.postDelayed(hideUnlockButtonAction, Constants.DEFAULT_CONTROLS_TIMEOUT_MS.toLong())
+        if (BuildConfig.PHYSICAL_NAVIGATION) unlockScreenButton.requestFocus()
+        else playerView.postDelayed(hideUnlockButtonAction, Constants.DEFAULT_CONTROLS_TIMEOUT_MS.toLong())
+    }
+
+    fun onBackPressed(): Boolean {
+        if (playerView.useController) return false
+        unlockScreen()
+        return true
     }
 
     fun hideUnlockButton() {

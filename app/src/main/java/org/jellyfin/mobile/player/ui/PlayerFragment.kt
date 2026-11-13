@@ -31,6 +31,7 @@ import io.github.peerless2012.ass.media.AssHandler
 import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
@@ -123,7 +124,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             if (mediaSource.selectedVideoStream?.isLandscape == false) {
                 // For portrait videos, immediately enable fullscreen
                 playerFullscreenHelper.enableFullscreen()
-            } else if (appPreferences.exoPlayerStartLandscapeVideoInLandscape) {
+            } else if (!BuildConfig.PHYSICAL_NAVIGATION && appPreferences.exoPlayerStartLandscapeVideoInLandscape) {
                 // Auto-switch to landscape for landscape videos if enabled
                 requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             }
@@ -227,11 +228,15 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         fullscreenSwitcher.setOnClickListener {
             toggleFullscreen()
         }
+        if (BuildConfig.PHYSICAL_NAVIGATION) {
+            playerView.showController()
+            playerControlsBinding.exoPlayPause.requestFocus()
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        orientationListener.enable()
+        if (!BuildConfig.PHYSICAL_NAVIGATION) orientationListener.enable()
     }
 
     override fun onResume() {
@@ -276,6 +281,10 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
      * For landscape videos, additionally the screen gets rotated.
      */
     private fun toggleFullscreen() {
+        if (BuildConfig.PHYSICAL_NAVIGATION) {
+            playerFullscreenHelper.toggleFullscreen()
+            return
+        }
         val videoTrack = currentVideoStream
         if (videoTrack == null || videoTrack.isLandscape) {
             val current = resources.configuration.orientation
@@ -296,6 +305,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
      */
     fun suppressControllerAutoHide(suppress: Boolean) {
         playerView.controllerShowTimeoutMs = if (suppress) -1 else DEFAULT_CONTROLS_TIMEOUT_MS
+        if (BuildConfig.PHYSICAL_NAVIGATION && !suppress) playerView.showController()
     }
 
     fun isLandscape(configuration: Configuration = resources.configuration) =
@@ -376,7 +386,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     }
 
     fun onUserLeaveHint() {
-        if (AndroidVersion.isAtLeastN && viewModel.playerOrNull != null) {
+        if (!BuildConfig.PHYSICAL_NAVIGATION && AndroidVersion.isAtLeastN && viewModel.playerOrNull != null) {
             requireActivity().enterPictureInPicture()
         }
     }
@@ -426,6 +436,16 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         }
     }
 
+    override fun onInterceptBackPressed(): Boolean {
+        if (!BuildConfig.PHYSICAL_NAVIGATION) return false
+        if (playerLockScreenHelper.onBackPressed()) return true
+        if (playerView.isControllerFullyVisible) {
+            playerView.hideController()
+            return true
+        }
+        return false
+    }
+
     override fun onStop() {
         super.onStop()
         orientationListener.disable()
@@ -446,7 +466,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         super.onDestroy()
         with(requireActivity()) {
             // Reset screen orientation
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            if (!BuildConfig.PHYSICAL_NAVIGATION) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             playerFullscreenHelper.disableFullscreen()
             // Reset screen brightness
             window.brightness = BRIGHTNESS_OVERRIDE_NONE

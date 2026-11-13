@@ -17,6 +17,7 @@ import androidx.core.view.size
 import androidx.core.view.updateLayoutParams
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.TimeBar
+import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
@@ -409,6 +410,17 @@ class PlayerMenus(
     override fun onDismiss(menu: PopupMenu) {
         fragment.suppressControllerAutoHide(false)
         fragment.onPopupDismissed()
+        if (BuildConfig.PHYSICAL_NAVIGATION) {
+            val anchor = when (menu) {
+                audioStreamsMenu -> audioStreamsButton
+                subtitlesMenu -> subtitlesButton
+                speedMenu -> speedButton
+                qualityMenu -> qualityButton
+                decoderMenu -> decoderButton
+                else -> null
+            }
+            anchor?.requestFocus()
+        }
     }
 
     private fun formatBitrate(bitrate: Double): String {
